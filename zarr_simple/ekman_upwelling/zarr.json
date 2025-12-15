@@ -1,0 +1,61 @@
+{
+  "shape": [
+    704,
+    1,
+    60,
+    45
+  ],
+  "data_type": "float32",
+  "chunk_grid": {
+    "name": "regular",
+    "configuration": {
+      "chunk_shape": [
+        365,
+        1,
+        60,
+        45
+      ]
+    }
+  },
+  "chunk_key_encoding": {
+    "name": "default",
+    "configuration": {
+      "separator": "/"
+    }
+  },
+  "fill_value": "NaN",
+  "codecs": [
+    {
+      "name": "bytes",
+      "configuration": {
+        "endian": "little"
+      }
+    },
+    {
+      "name": "zstd",
+      "configuration": {
+        "level": 0,
+        "checksum": false
+      }
+    }
+  ],
+  "attributes": {
+    "cell_methods": "time: mean",
+    "colorBarMaximum": 1.9999999494757503e-05,
+    "colorBarMinimum": -1.9999999494757503e-05,
+    "ioos_category": "Currents",
+    "long_name": "Ekman Upwelling",
+    "units": "m s-1",
+    "missing_value": -99999.0,
+    "_FillValue": "AAAAAPBp+MA="
+  },
+  "dimension_names": [
+    "time",
+    "altitude",
+    "latitude",
+    "longitude"
+  ],
+  "zarr_format": 3,
+  "node_type": "array",
+  "storage_transformers": []
+}

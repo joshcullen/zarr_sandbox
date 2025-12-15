@@ -1,0 +1,57 @@
+{
+  "shape": [
+    1
+  ],
+  "data_type": "float64",
+  "chunk_grid": {
+    "name": "regular",
+    "configuration": {
+      "chunk_shape": [
+        1
+      ]
+    }
+  },
+  "chunk_key_encoding": {
+    "name": "default",
+    "configuration": {
+      "separator": "/"
+    }
+  },
+  "fill_value": "NaN",
+  "codecs": [
+    {
+      "name": "bytes",
+      "configuration": {
+        "endian": "little"
+      }
+    },
+    {
+      "name": "zstd",
+      "configuration": {
+        "level": 0,
+        "checksum": false
+      }
+    }
+  ],
+  "attributes": {
+    "_CoordinateAxisType": "Height",
+    "_CoordinateZisPositive": "up",
+    "actual_range": [
+      10.0,
+      10.0
+    ],
+    "axis": "Z",
+    "ioos_category": "Location",
+    "long_name": "Altitude",
+    "positive": "up",
+    "standard_name": "altitude",
+    "units": "m",
+    "_FillValue": "AAAAAAAA+H8="
+  },
+  "dimension_names": [
+    "altitude"
+  ],
+  "zarr_format": 3,
+  "node_type": "array",
+  "storage_transformers": []
+}

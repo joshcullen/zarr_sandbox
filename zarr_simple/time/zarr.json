@@ -1,0 +1,58 @@
+{
+  "shape": [
+    704
+  ],
+  "data_type": "float64",
+  "chunk_grid": {
+    "name": "regular",
+    "configuration": {
+      "chunk_shape": [
+        704
+      ]
+    }
+  },
+  "chunk_key_encoding": {
+    "name": "default",
+    "configuration": {
+      "separator": "/"
+    }
+  },
+  "fill_value": "NaN",
+  "codecs": [
+    {
+      "name": "bytes",
+      "configuration": {
+        "endian": "little"
+      }
+    },
+    {
+      "name": "zstd",
+      "configuration": {
+        "level": 0,
+        "checksum": false
+      }
+    }
+  ],
+  "attributes": {
+    "_CoordinateAxisType": "Time",
+    "actual_range": [
+      1630584000.0,
+      1765627200.0
+    ],
+    "axis": "T",
+    "cell_methods": "time: mean",
+    "ioos_category": "Time",
+    "long_name": "Centered Time",
+    "standard_name": "time",
+    "time_origin": "01-JAN-1970 00:00:00",
+    "units": "seconds since 1970-01-01T00:00:00+00:00",
+    "calendar": "gregorian",
+    "_FillValue": "AAAAAAAA+H8="
+  },
+  "dimension_names": [
+    "time"
+  ],
+  "zarr_format": 3,
+  "node_type": "array",
+  "storage_transformers": []
+}
