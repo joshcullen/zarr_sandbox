@@ -4,6 +4,7 @@
 import xarray as xr
 import matplotlib.pyplot as plt
 import datetime as dt
+import fsspec
 
 
 # Load previously downloaded CMEMS data
@@ -33,6 +34,7 @@ dz = dc.chunk({
 })
 
 # Print chunk sizes per dim (time, altitude, lat, long)
+print(dz)
 dz.chunks
 dz.sizes
 
@@ -48,5 +50,32 @@ dz.to_zarr(
 
 
 
-# Try to read in Zarr file now
-new_ds = xr.open_zarr("zarr_simple/")
+# Try to read in Zarr file now (locally)
+new_ds = xr.open_zarr(zarr_path, consolidated=False)
+new_ds.chunks
+print(new_ds)
+
+new_ds2 = new_ds['ekman_upwelling'].sel(time=new_ds.time.max())
+new_ds2.sizes
+
+new_ds2.plot()
+print(new_ds2)
+
+
+
+## Try to read Zarr file from GitHub repo
+
+# Define the repository details
+user = "joshcullen"
+repo = "zarr_sandbox"
+path = "zarr_simple" # Path inside the repo to the .zarr folder
+branch = "main"            # Branch or commit SHA
+
+# Create a filesystem object
+fs = fsspec.filesystem("github", org=user, repo=repo, sha=branch)
+
+# Create a mapper (a key-value view of the files)
+zarr_url = fs.get_mapper(path)
+# zarr_url = "https://github.com/joshcullen/zarr_sandbox/tree/main/zarr_simple"
+ds_gh = xr.open_zarr(zarr_url, consolidated=False)
+print(ds_gh)
