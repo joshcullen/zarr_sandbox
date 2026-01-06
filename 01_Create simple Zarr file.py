@@ -7,7 +7,7 @@ import datetime as dt
 import fsspec
 
 
-# Load previously downloaded CMEMS data
+# Stream ERDDAP Ekman upwelling data
 base = "https://coastwatch.pfeg.noaa.gov/erddap/griddap"
 dataset_id = "erdQCwindproducts3day"   # 3-day composite (daily time steps)
 url = f"{base}/{dataset_id}"
