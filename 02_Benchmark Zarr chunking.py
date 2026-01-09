@@ -4,7 +4,6 @@
 import xarray as xr
 import matplotlib.pyplot as plt
 import datetime as dt
-import fsspec
 
 
 # Load in SST data from leatherback iSDM project
