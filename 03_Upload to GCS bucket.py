@@ -5,6 +5,7 @@ import xarray as xr
 import zarr
 import gcsfs
 import matplotlib.pyplot as plt
+import datetime as dt
 
 # Define where the Zarr file resides locally
 zarr_local = "zarr_monthly/"
@@ -44,4 +45,34 @@ ds_cloud.chunks
 ds_cloud['thetao'].sel(
   latitude=slice(-20, 50), 
   longitude=slice(220, 260)
-  ).isel(time=-1).plot()
+  ).isel(time=-1).plot(aspect="equal", size=7)
+
+ds_cloud.time.values
+
+
+
+
+# Now try appending Zarr file in cloud with another day of data
+tmp = ds_cloud.sel(time="2025-04-06")
+print(tmp)
+
+tmp["time"] = [dt.datetime.today()]
+print(tmp)
+
+%%time
+tmp.to_zarr(
+    zarr_path,
+    mode="a-",  # append only specified dims
+    append_dim="time",
+    consolidated=False,
+    storage_options={"token": "google_default"}
+)
+#took 30 s to run
+
+# Check latest date of available data
+ds_cloud2 = xr.open_zarr(zarr_path, 
+                        consolidated=False,
+                        storage_options={"token": "google_default"})  # W/ current permissions, requires creds
+
+# Subset Zarr data from cloud and plot
+ds_cloud2['thetao'].isel(time=-1).time.values
