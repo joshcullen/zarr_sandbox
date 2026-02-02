@@ -71,3 +71,5 @@ if zarr_duration < nc_duration:
     print(f"Result: Zarr was {nc_duration / zarr_duration:.1f}x faster")
 else:
     print(f"Result: NetCDF was {zarr_duration / nc_duration:.1f}x faster")
+
+# Zarr was 1.4x faster in this test
