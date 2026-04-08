@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zarr Map Visualization</title>
+    <style>
+      /* Ensure the map takes up the full screen */
+      body { margin: 0; padding: 0; }
+      #map { width: 100vw; height: 100vh; }
+      #ui-panel {
+                  position: absolute;
+                  top: 20px;
+                  left: 20px;
+                  background: rgba(30, 30, 30, 0.9);
+                  color: white;
+                  padding: 15px;
+                  border-radius: 8px;
+                  font-family: sans-serif;
+                  z-index: 1000; /* Ensures it sits on top of the map */
+                  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+                }
+      input[type=range] {
+                          width: 100%;
+                          display: block;
+                          margin-top: 5px;
+                        }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    
+    <div id="ui-panel">
+      <div>
+        <label>Time Index: <span id="time-val">0</span></label>
+        <input type="range" id="time-slider" min="0" max="559" value="0">
+      </div>
+      <div style="margin-top: 10px;">
+        <label>Depth (z) Index: <span id="z-val">0</span></label>
+        <input type="range" id="z-slider" min="0" max="19" value="0">
+      </div>
+      <div class="sidebar-item">
+        <p><strong>Click the map</strong> to query<br> CHLA concentration:</p>
+        <p id="pixel-val" style="font-size: 1.2em; font-family: monospace;">--</p>
+      </div>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>
