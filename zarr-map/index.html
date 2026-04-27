@@ -3,51 +3,62 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="src/style.css">
     <title>Zarr Map Visualization</title>
-    <style>
-      /* Ensure the map takes up the full screen */
-      body { margin: 0; padding: 0; }
-      #map { width: 100vw; height: 100vh; }
-      #ui-panel {
-                  position: absolute;
-                  top: 20px;
-                  left: 20px;
-                  background: rgba(30, 30, 30, 0.9);
-                  color: white;
-                  padding: 15px;
-                  border-radius: 8px;
-                  font-family: sans-serif;
-                  z-index: 1000; /* Ensures it sits on top of the map */
-                  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-                }
-      input[type=range] {
-                          width: 100%;
-                          display: block;
-                          margin-top: 5px;
-                        }
-      .maplibregl-ctrl-top-right .geoman-controls {
-        margin-top: 10px;
-        margin-right: 10px;
-        z-index: 1100;
-      }
-    </style>
   </head>
   <body>
     <div id="map"></div>
-    
-    <div id="ui-panel">
-      <div>
-        <label>Date: <span id="time-val">2024-03-05</span></label>
-        <input type="range" id="time-slider" min="0" max="559" value="0">
+
+    <div id="map-tools">
+      <div id="depth-control" class="control-card">
+        <div class="control-label depth-label">
+          <span>Depth</span>
+          <strong id="z-val">5 m</strong>
+        </div>
+      
+        <div class="depth-control-body">
+          <input type="range" id="z-slider" min="0" max="19" value="0">
+        
+          <svg class="depth-axis-svg" viewBox="0 0 58 128" aria-hidden="true">
+            <line class="axis-domain" x1="8" x2="8" y1="10" y2="118"></line>
+          
+            <g class="axis-tick" transform="translate(8, 10)">
+              <line x2="8"></line>
+              <text x="13" dy="0.32em">5 m</text>
+            </g>
+          
+            <g class="axis-tick" transform="translate(8, 64)">
+              <line x2="8"></line>
+              <text x="13" dy="0.32em">100 m</text>
+            </g>
+          
+            <g class="axis-tick" transform="translate(8, 118)">
+              <line x2="8"></line>
+              <text x="13" dy="0.32em">195 m</text>
+            </g>
+          
+            <line class="axis-highlight" x1="8" x2="8" y1="10" y2="118"></line>
+          </svg>
+        </div>
       </div>
-      <div style="margin-top: 10px;">
-        <label>Depth: <span id="z-val">5 m</span></label>
-        <input type="range" id="z-slider" min="0" max="19" value="0">
+
+
+      <div id="time-control" class="control-card">
+        <div class="control-label">
+          <span>Date</span>
+          <strong id="time-val">2024-03-05</strong>
+        </div>
+        
+        <div class="time-control-body">
+          <svg id="time-axis-svg" class="time-axis-svg" aria-hidden="true"></svg>
+          <input type="range" id="time-slider" min="0" max="559" value="0">
+        </div>
       </div>
-      <div class="sidebar-item">
-        <p><strong>Click the map</strong> to query<br> CHLA concentration:</p>
-        <p id="pixel-val" style="font-size: 1.2em; font-family: monospace;">--</p>
-      </div>
+    </div>
+
+    <div id="query-panel">
+      <p><strong>Click the map</strong> to query<br> CHLA concentration:</p>
+      <p id="pixel-val">--</p>
     </div>
 
     <script type="module" src="src/main.js"></script>

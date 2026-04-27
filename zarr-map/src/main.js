@@ -17,6 +17,8 @@ const ZARR_SOURCE = 'https://storage.googleapis.com/nmfs_odp_nwfsc/CB/fish-pace-
 const VARIABLE_NAME = 'CHLA';
 const COLORBAR_MIN = 0;
 const COLORBAR_MAX = 13;
+const TIME_START_DATE = new Date("2024-03-05T00:00:00Z");
+const TIME_MAX_INDEX = 559;
 
 // --------------------------------------------------
 // Global handles for debugging
@@ -174,6 +176,107 @@ function updateUI() {
 
 timeSlider.addEventListener('input', updateUI);
 zSlider.addEventListener('input', updateUI);
+
+
+//Help with setting up time slider labels
+function dateFromTimeIndex(index) {
+  const date = new Date(TIME_START_DATE);
+  date.setUTCDate(date.getUTCDate() + index);
+  return date;
+}
+
+function timeIndexFromDate(date) {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  return Math.round((date - TIME_START_DATE) / msPerDay);
+}
+
+function renderTimeAxis() {
+  const svg = document.getElementById("time-axis-svg");
+  const slider = document.getElementById("time-slider");
+
+  const sliderRect = slider.getBoundingClientRect();
+  const width = sliderRect.width;
+  const height = 70;
+
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  svg.innerHTML = "";
+
+  const minIndex = Number(slider.min);
+  const maxIndex = Number(slider.max);
+
+  const y = 14;
+
+  function xFromIndex(index) {
+    return ((index - minIndex) / (maxIndex - minIndex)) * width;
+  }
+
+  const axis = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  axis.setAttribute("class", "time-axis-highlight");
+  axis.setAttribute("x1", xFromIndex(minIndex));
+  axis.setAttribute("x2", xFromIndex(maxIndex));
+  axis.setAttribute("y1", y);
+  axis.setAttribute("y2", y);
+  svg.appendChild(axis);
+
+  const firstDate = dateFromTimeIndex(minIndex);
+  const lastDate = dateFromTimeIndex(maxIndex);
+
+  const tickDate = new Date(Date.UTC(
+    firstDate.getUTCFullYear(),
+    firstDate.getUTCMonth(),
+    1
+  ));
+
+  if (tickDate < firstDate) {
+    tickDate.setUTCMonth(tickDate.getUTCMonth() + 1);
+  }
+
+  while (tickDate <= lastDate) {
+    const index = timeIndexFromDate(tickDate);
+
+    if (index >= minIndex && index <= maxIndex) {
+      const x = xFromIndex(index);
+
+      const month = tickDate.toLocaleString("en-US", {
+        month: "short",
+        timeZone: "UTC",
+      });
+
+      const year = tickDate.getUTCFullYear();
+
+      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      g.setAttribute("class", "time-tick major");
+      g.setAttribute("transform", `translate(${x}, ${y})`);
+
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("y2", "10");
+
+      const monthText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      monthText.setAttribute("class", "month-label");
+      monthText.setAttribute("y", "26");
+      monthText.setAttribute("font-size", "10");
+      monthText.textContent = month;
+
+      g.appendChild(line);
+      g.appendChild(monthText);
+
+      // Add YEAR label only for January
+      if (tickDate.getUTCMonth() === 0) {
+        const yearText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        yearText.setAttribute("class", "year-label");
+        yearText.setAttribute("y", "55");  // below month
+        yearText.setAttribute("font-size", "30");
+        yearText.textContent = year;
+
+        g.appendChild(yearText);
+      }
+
+      svg.appendChild(g);
+    }
+
+    tickDate.setUTCMonth(tickDate.getUTCMonth() + 1);
+  }
+}
 
 // --------------------------------------------------
 // Query helpers
@@ -397,6 +500,13 @@ map.on('load', () => {
 
   // Legend
   map.addControl(new ColorbarLegendControl(), 'bottom-right');
+
+  // Define labels for time slider
+  renderTimeAxis();
+  updateUI();
+
+  // Update on time slider on page resize
+  window.addEventListener("resize", renderTimeAxis);
 
   // Geoman
   const geoman = new Geoman(map, {
