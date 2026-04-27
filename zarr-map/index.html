@@ -57,8 +57,17 @@
     </div>
 
     <div id="query-panel">
-      <p><strong>Click the map</strong> to query<br> CHLA concentration:</p>
-      <p id="pixel-val">--</p>
+      <p><strong>Query CHLA concentration</strong></p>
+    
+      <div class="query-row">
+        <span>Hover point</span>
+        <strong id="hover-pixel-val">--</strong>
+      </div>
+    
+      <div class="query-row">
+        <span>Drawn region mean</span>
+        <strong id="region-mean-val">--</strong>
+      </div>
     </div>
 
     <script type="module" src="src/main.js"></script>

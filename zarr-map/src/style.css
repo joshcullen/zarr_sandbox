@@ -19,6 +19,7 @@ body {
   gap: 12px;
   z-index: 1000;
   color: white;
+  pointer-events: none;  /* Let map clicks pass through empty space */
 }
 
 .control-card {
@@ -27,6 +28,12 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 14px;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.38);
+}
+
+/* Allow sliders to be clicked */
+.control-card,
+.control-card * {
+  pointer-events: auto;
 }
 
 #depth-control {
@@ -255,6 +262,19 @@ input[type="range"]::-moz-range-track {
   border-radius: 8px;
   z-index: 1000;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.query-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.query-row strong {
+  font-family: monospace;
+  font-size: 15px;
 }
 
 #pixel-val {

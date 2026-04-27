@@ -19,6 +19,7 @@ const COLORBAR_MIN = 0;
 const COLORBAR_MAX = 13;
 const TIME_START_DATE = new Date("2024-03-05T00:00:00Z");
 const TIME_MAX_INDEX = 559;
+const QUERY_UNITS = "mg m⁻³"; // update if needed
 
 // --------------------------------------------------
 // Global handles for debugging
@@ -281,6 +282,61 @@ function renderTimeAxis() {
 // --------------------------------------------------
 // Query helpers
 // --------------------------------------------------
+const FILL_VALUE = -9999;
+
+const hoverPixelVal = document.getElementById("hover-pixel-val");
+const regionMeanVal = document.getElementById("region-mean-val");
+
+function collectNumbers(values, fillValue = FILL_VALUE, depth = 0) {
+  if (!values || depth > 10) return [];
+
+  if (Array.isArray(values)) {
+    return values.filter((value) =>
+      value !== fillValue &&
+      typeof value === "number" &&
+      Number.isFinite(value)
+    );
+  }
+
+  if (typeof values !== "object") return [];
+
+  let results = [];
+  for (const entry of Object.values(values)) {
+    results = results.concat(collectNumbers(entry, fillValue, depth + 1));
+  }
+
+  return results;
+}
+
+function getQueryStats(result, variableName = VARIABLE_NAME) {
+  if (!result || !result[variableName]) {
+    return { mean: null, count: 0 };
+  }
+
+  const values = collectNumbers(result[variableName]);
+
+  if (!values.length) {
+    return { mean: null, count: 0 };
+  }
+
+  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+
+  return {
+    mean: Number.isFinite(mean) ? mean : null,
+    count: values.length,
+  };
+}
+
+function formatQueryStats(stats, includeCount = false) {
+  if (!stats || stats.mean == null) return "--";
+
+  const value = `${stats.mean.toFixed(3)} ${QUERY_UNITS}`;
+
+  if (!includeCount) return value;
+
+  return `${value} (${stats.count} pixels)`;
+}
+
 function getResultVariableName(result) {
   if (!result || typeof result !== 'object') return null;
   return Object.keys(result).find(
@@ -432,23 +488,25 @@ async function runZarrQuery(geometry, { isArea = false } = {}) {
   }
 }
 
-async function recalcFeatureMean(featureData) {
+async function recalcFeatureMean(feature) {
+  if (!window.zarrLayer) return;
+
+  const geometry = normalizeGeometryForQuery(feature);
+
   try {
-    const geometry = normalizeGeometryForQuery(featureData);
-
-    if (!geometry) {
-      console.log('Could not normalize feature:', featureData);
-      if (typeof featureData?.getGeoJson === 'function') {
-        console.log('Extracted GeoJSON:', featureData.getGeoJson());
+    const result = await window.zarrLayer.queryData(
+      geometry,
+      getCurrentSelector(),
+      {
+        includeSpatialCoordinates: false,
       }
-      setSidebarText('Unsupported shape for area query');
-      return;
-    }
+    );
 
-    await runZarrQuery(geometry, { isArea: true });
-  } catch (err) {
-    console.error('Recalculation failed:', err);
-    setSidebarText('Area query failed');
+    const stats = getQueryStats(result);
+    regionMeanVal.innerText = formatQueryStats(stats, true);
+  } catch (error) {
+    console.error("Region query failed:", error);
+    regionMeanVal.innerText = "--";
   }
 }
 
@@ -563,10 +621,68 @@ map.on('load', () => {
   });
 
   // Shape removed
-  map.on('gm:remove', () => {
-    console.log('gm:remove');
-    clearSidebar();
+  map.on("gm:remove", () => {
+    regionMeanVal.innerText = "--";
   });
 
   updateUI();
+});
+
+
+// Query on mouse hover
+let hoverQueryEnabled = true;
+let hoverQueryInFlight = false;
+let lastHoverQueryTime = 0;
+let hoverAbortController = null;
+
+const HOVER_QUERY_INTERVAL_MS = 150;
+
+async function queryPointOnHover(event) {
+  if (!hoverQueryEnabled || !window.zarrLayer) return;
+
+  const now = Date.now();
+  if (hoverQueryInFlight || now - lastHoverQueryTime < HOVER_QUERY_INTERVAL_MS) {
+    return;
+  }
+
+  lastHoverQueryTime = now;
+  hoverQueryInFlight = true;
+
+  if (hoverAbortController) {
+    hoverAbortController.abort();
+  }
+
+  hoverAbortController = new AbortController();
+
+  const pointGeometry = {
+    type: "Point",
+    coordinates: [event.lngLat.lng, event.lngLat.lat],
+  };
+
+  try {
+    const result = await window.zarrLayer.queryData(
+      pointGeometry,
+      getCurrentSelector(),
+      {
+        signal: hoverAbortController.signal,
+        includeSpatialCoordinates: false,
+      }
+    );
+
+    const stats = getQueryStats(result);
+    hoverPixelVal.innerText = formatQueryStats(stats, false);
+  } catch (error) {
+    if (error.name !== "AbortError") {
+      console.error("Hover query failed:", error);
+      hoverPixelVal.innerText = "--";
+    }
+  } finally {
+    hoverQueryInFlight = false;
+  }
+}
+
+map.on("mousemove", queryPointOnHover);
+
+map.on("mouseleave", () => {
+  hoverPixelVal.innerText = "--";
 });
