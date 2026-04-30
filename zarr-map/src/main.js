@@ -3,6 +3,7 @@ import { ZarrLayer } from '@carbonplan/zarr-layer';
 import { LayerControl } from 'maplibre-gl-layer-control';
 import { Geoman } from '@geoman-io/maplibre-geoman-free';
 import * as turf from '@turf/turf';
+import shp from 'shpjs'; // Shapefile parser
 
 // Styles
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -27,6 +28,7 @@ const QUERY_UNITS = "mg m⁻³"; // update if needed
 window.map = null;
 window.zarrLayer = null;
 window.geoman = null;
+window.activeUploadedGeoJSON = null;
 
 // --------------------------------------------------
 // DOM references
@@ -172,6 +174,14 @@ function updateUI() {
   if (window.zarrLayer) {
     window.zarrLayer.setSelector(getCurrentSelector());
     map.triggerRepaint();
+  }
+
+  // Recalculate mean for uploaded shapes if they exist
+  if (window.activeUploadedGeoJSON) {
+    // Wrap in setTimeout to ensure it runs *after* the Zarr layer updates
+    setTimeout(() => {
+      recalcFeatureMean(window.activeUploadedGeoJSON);
+    }, 50); 
   }
 }
 
@@ -378,6 +388,11 @@ function isDrawingInteraction(point) {
 
 function normalizeGeometryForQuery(featureOrGeometry) {
   if (!featureOrGeometry) return null;
+
+  // Handle uploaded FeatureCollections by taking the first feature
+  if (featureOrGeometry.type === 'FeatureCollection' && featureOrGeometry.features?.length > 0) {
+    return normalizeGeometryForQuery(featureOrGeometry.features[0]);
+  }
 
   // Geoman FeatureData object
   if (typeof featureOrGeometry.getGeoJson === 'function') {
@@ -686,3 +701,186 @@ map.on("mousemove", queryPointOnHover);
 map.on("mouseleave", () => {
   hoverPixelVal.innerText = "--";
 });
+
+
+// --------------------------------------------------
+// Vector File Upload Logic
+// --------------------------------------------------
+
+// 1. Create a Custom MapLibre Control for the upload button
+class VectorUploadControl {
+  onAdd(map) {
+    this._map = map;
+    this._container = document.createElement('div');
+    this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+    
+    // Force this control to clear standard floating
+    this._container.style.clear = 'both';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'custom-upload-btn';
+    btn.title = 'Upload Vector File (.geojson, .zip shapefile)';
+    btn.onclick = () => document.getElementById('vector-upload').click();
+    
+    // Explicitly match MapLibre and Geoman button dimensions
+    btn.style.width = '29px';
+    btn.style.height = '29px';
+    btn.style.padding = '0';
+    btn.style.display = 'flex';
+    btn.style.alignItems = 'center';
+    btn.style.justifyContent = 'center';
+    btn.style.backgroundColor = '#ffffff';
+    btn.style.border = 'none';
+    btn.style.cursor = 'pointer';
+    
+    // Geoman blue (#2371a0) SVG
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="18" height="18" style="fill: #2371a0;">
+        <path d="M5 20h14v-2H5v2zm7-18L5.33 8.67h4V16h5.34V8.67h4L12 2z"/>
+      </svg>
+    `;
+    
+    this._container.appendChild(btn);
+    return this._container;
+  }
+  
+  onRemove() {
+    this._container.parentNode.removeChild(this._container);
+    this._map = undefined;
+  }
+}
+
+// Create button to clear uploaded vector layer
+class ClearUploadControl {
+  onAdd(map) {
+    this._map = map;
+    this._container = document.createElement('div');
+    this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+    this._container.style.clear = 'both'; // Force it to stack cleanly
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'custom-upload-btn'; // Re-use our rounded corners class
+    btn.title = 'Remove Uploaded Vector Layer';
+    
+    btn.style.width = '29px';
+    btn.style.height = '29px';
+    btn.style.padding = '0';
+    btn.style.display = 'flex';
+    btn.style.alignItems = 'center';
+    btn.style.justifyContent = 'center';
+    btn.style.backgroundColor = '#ffffff';
+    btn.style.border = 'none';
+    btn.style.cursor = 'pointer';
+
+    // Trash SVG
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="18" height="18" style="fill: #2371a0;">
+        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+      </svg>
+    `;
+
+    // The logic to clear the layer
+    btn.onclick = () => {
+      if (map.getLayer('uploaded-vector-fill')) map.removeLayer('uploaded-vector-fill');
+      if (map.getLayer('uploaded-vector-line')) map.removeLayer('uploaded-vector-line');
+      if (map.getSource('uploaded-vector')) map.removeSource('uploaded-vector');
+      
+      window.activeUploadedGeoJSON = null;
+      
+      // Reset sidebar display (ensure this ID matches your HTML)
+      const meanDisplay = document.getElementById('region-mean-val') || document.getElementById('pixel-val');
+      if (meanDisplay) meanDisplay.innerText = '--';
+    };
+
+    this._container.appendChild(btn);
+    return this._container;
+  }
+  
+  onRemove() {
+    this._container.parentNode.removeChild(this._container);
+    this._map = undefined;
+  }
+}
+
+
+// Add the control to the map (can be placed inside map.on('load'))
+map.addControl(new VectorUploadControl(), 'top-right');
+map.addControl(new ClearUploadControl(), 'top-right');
+
+// 2. Handle the file selection
+const fileInput = document.getElementById('vector-upload');
+
+fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const name = file.name.toLowerCase();
+  let geojson = null;
+
+  try {
+    regionMeanVal.innerText = 'Parsing file...';
+    
+    if (name.endsWith('.json') || name.endsWith('.geojson')) {
+      const text = await file.text();
+      geojson = JSON.parse(text);
+    } else if (name.endsWith('.zip')) {
+      const buffer = await file.arrayBuffer();
+      geojson = await shp(buffer); 
+    } else {
+      alert('Unsupported format. Please upload .geojson or a zipped Shapefile (.zip).');
+      return;
+    }
+
+    renderAndQueryUploadedData(geojson);
+  } catch (err) {
+    console.error("Error parsing uploaded file:", err);
+    regionMeanVal.innerText = 'Error parsing file';
+  } finally {
+    e.target.value = ''; // Reset input to allow re-uploading the same file
+  }
+});
+
+// 3. Draw on map and calculate mean
+function renderAndQueryUploadedData(geojson) {
+  window.activeUploadedGeoJSON = geojson;
+  const sourceId = 'uploaded-vector';
+  
+  // Add or update the visual layer on the map
+  if (map.getSource(sourceId)) {
+    map.getSource(sourceId).setData(geojson);
+  } else {
+    map.addSource(sourceId, { type: 'geojson', data: geojson });
+    map.addLayer({
+      id: sourceId + '-fill',
+      type: 'fill',
+      source: sourceId,
+      paint: {
+        'fill-color': '#4ade80',
+        'fill-opacity': 0.3
+      }
+    });
+    map.addLayer({
+      id: sourceId + '-line',
+      type: 'line',
+      source: sourceId,
+      paint: {
+        'line-color': '#4ade80',
+        'line-width': 2
+      }
+    });
+  }
+
+  // Zoom map to the uploaded features
+  try {
+    const bbox = turf.bbox(geojson);
+    map.fitBounds(bbox, { padding: 40, duration: 1000 });
+  } catch (e) {
+    console.warn("Could not fit bounds to upload:", e);
+  }
+
+  // Calculate mean using your existing query pipeline
+  regionMeanVal.innerText = 'Calculating...';
+  recalcFeatureMean(geojson);
+}

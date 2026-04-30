@@ -284,8 +284,9 @@ input[type="range"]::-moz-range-track {
 
 .maplibregl-ctrl-top-right .geoman-controls {
   margin-top: 10px;
-  margin-right: 10px;
+  margin-right: 0px !important;
   z-index: 1100;
+  clear: both;  /* force vertical stacking */
 }
 
 .month-label {
@@ -300,4 +301,14 @@ input[type="range"]::-moz-range-track {
   font-size: 20px;
   font-weight: 300;
   text-anchor: middle;
+}
+
+/* Custom Upload Button Rounding */
+.custom-upload-btn {
+  border-radius: 4px !important;
+}
+
+/* Optional: Add the same hover effect Geoman uses */
+.custom-upload-btn:hover {
+  background-color: #f4f4f4 !important;
 }
