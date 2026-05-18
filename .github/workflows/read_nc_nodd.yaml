@@ -47,4 +47,4 @@ jobs:
 
     - name: Run Python script
       shell: bash -el {0}
-      run: python Read NODD_netCDF.py
+      run: python Read_NODD_netCDF.py

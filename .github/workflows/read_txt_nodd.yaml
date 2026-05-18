@@ -45,4 +45,4 @@ jobs:
 
     - name: Run R script
       shell: Rscript {0}
-      run: source("Read NODD_txt.R")
+      run: source("Read_NODD_txt.R")
