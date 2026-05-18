@@ -1,0 +1,43 @@
+
+name: Read txt NODD
+
+on: 
+  workflow_dispatch:
+
+jobs:
+  read_nc:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v6
+      
+    # - name: Print dir tree
+    #   run: tree
+
+    # - name: Install Conda
+    #   uses: conda-incubator/setup-miniconda@v3
+    #   with:
+    #     auto-update-conda: true
+    #     channels: conda-forge,defaults
+    #     python-version: 3.12
+
+    # - name: Check disk space
+    #   run: |
+    #     df -h
+
+    # - name: 'Authenticate to Google Cloud'
+    #   uses: 'google-github-actions/auth@v3'
+    #   with:
+    #     # You'll get these strings after setting up WIF in the GCP Console
+    #     workload_identity_provider: 'projects/933817670224/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider'
+    #     service_account: 'ce-github-sa1@ggn-nmfs-usamlr-dev-7b99.iam.gserviceaccount.com'
+
+    - name: Run R script
+      shell: Rscript {0}
+      run: source("Read NODD_txt.R")
