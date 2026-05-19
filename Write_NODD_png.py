@@ -28,7 +28,12 @@ plt.title("GEBCO 2024 Elevation")
 
 # 3. Save the figure
 # 'bbox_inches="tight"' ensures labels aren't cut off at the edges
-plt.savefig('gebco_elevation_plot.png', dpi=300, bbox_inches='tight')
+cloud_img_path = 'gs://nmfs_odp_swfsc/ESD/climate-ecosystems/gebco_elevation_map.png'
+
+with fs.open(cloud_img_path, 'wb') as f:
+    plt.savefig(f, format='png', dpi=300, bbox_inches='tight')
 
 # 4. Clear/close the plot memory
 plt.close()
+
+print(f"Plot successfully saved to: {cloud_img_path}")
